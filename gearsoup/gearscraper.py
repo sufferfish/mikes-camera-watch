@@ -21,7 +21,7 @@ class GearScraper:
             th.decompose()
         return gtable.find_all('tr')[1:]
 
-    def __cleanup(self, i):
+    def __clean_value(self, i):
         if '$' in i:
             return float(i.replace('$ ', '').replace(',', ''))
         else:
@@ -29,12 +29,18 @@ class GearScraper:
                 return int(i)
             except ValueError:
                 return i
+            
+    def __clean_final_list(self, flist):
+        for gear_dict in flist:
+            if len(gear_dict) != 5:
+                flist.pop(flist.index(gear_dict))
+        return flist
 
     def __item_dict(self, clean_gtable):
         headers = ['ref', 'name', 'price', 'loc', 'num'] 
         values = []
         for string in clean_gtable.stripped_strings:
-            values.append(self.__cleanup(string))
+            values.append(self.__clean_value(string))
         return dict(zip(headers, values))
 
     def _build_mega_list(self, table_contents):
@@ -43,7 +49,7 @@ class GearScraper:
             mega_list.append(self.__item_dict(tag))
         return mega_list
 
-    def dump_json(self, mega_list):
+    def _dump_json(self, mega_list):
         with open('mike.json', 'w') as f:
             json.dump(mega_list, f, indent=2)
 
@@ -52,4 +58,12 @@ class GearScraper:
         gtable = self._get_gear_soup_table(doc_url)
         table_contents = self._clean_table_contents(gtable)
         mega_list = self._build_mega_list(table_contents)
-        self.dump_json(mega_list)
+        final_list = self.__clean_final_list(mega_list)
+        self._dump_json(final_list)
+
+    def scrape_to_mem(self):
+        doc_url = self._get_google_doc_url()
+        gtable = self._get_gear_soup_table(doc_url)
+        table_contents = self._clean_table_contents(gtable)
+        mega_list = self._build_mega_list(table_contents)
+        self.memj = self.__clean_final_list(mega_list)
